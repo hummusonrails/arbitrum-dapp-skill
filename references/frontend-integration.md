@@ -35,6 +35,8 @@ viem ships with built-in chain definitions for `arbitrum` (One) and `arbitrumSep
 
 ## wagmi Config
 
+**Important:** Always pass explicit URLs to `http()`. Calling `http()` with no argument does not reliably resolve custom chain RPC URLs from `defineChain` — requests will silently fail.
+
 ```typescript
 import { http, createConfig } from "wagmi";
 import { arbitrum, arbitrumSepolia } from "wagmi/chains";
@@ -47,8 +49,22 @@ export const config = createConfig({
     walletConnect({ projectId: process.env.NEXT_PUBLIC_WC_PROJECT_ID! }),
   ],
   transports: {
-    [arbitrum.id]: http(),
-    [arbitrumSepolia.id]: http(),
+    [arbitrum.id]: http("https://arb1.arbitrum.io/rpc"),
+    [arbitrumSepolia.id]: http("https://sepolia-rollup.arbitrum.io/rpc"),
+  },
+});
+```
+
+For local devnode, use a Next.js API route proxy (see `references/local-devnode.md` CORS section):
+
+```typescript
+import { http, createConfig } from "wagmi";
+import { arbitrumLocal } from "./chains";
+
+export const config = createConfig({
+  chains: [arbitrumLocal],
+  transports: {
+    [arbitrumLocal.id]: http("/api/rpc"),
   },
 });
 ```
@@ -58,13 +74,14 @@ export const config = createConfig({
 ```typescript
 "use client";
 
+import { useState } from "react";
 import { WagmiProvider } from "wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { config } from "./config";
 
-const queryClient = new QueryClient();
-
 export function Providers({ children }: { children: React.ReactNode }) {
+  const [queryClient] = useState(() => new QueryClient());
+
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
@@ -74,6 +91,34 @@ export function Providers({ children }: { children: React.ReactNode }) {
   );
 }
 ```
+
+## Hydration Safety
+
+Wagmi hooks like `useAccount()` return different values on the server (no wallet) vs the client (potentially connected). This causes Next.js hydration mismatches when components conditionally render based on wallet state (`isConnected`, `address`).
+
+**Fix:** Use a `mounted` guard so wallet-dependent UI only renders after the first client render:
+
+```typescript
+"use client";
+
+import { useState, useEffect } from "react";
+import { useAccount } from "wagmi";
+
+export function WalletInfo() {
+  const { address, isConnected } = useAccount();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  // Render a placeholder until mounted to avoid hydration mismatch
+  if (!mounted) return <div className="h-10 w-32" />;
+
+  if (!isConnected) return <button>Connect Wallet</button>;
+
+  return <span>{address}</span>;
+}
+```
+
+Apply this pattern to **every** client component that branches on `useAccount`, `useConnect`, or other wagmi hooks that depend on browser-only wallet state.
 
 ## Reading Contract State
 

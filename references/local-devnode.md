@@ -76,6 +76,43 @@ cast balance --rpc-url http://localhost:8547 \
   0x3f1Eae7D46d88F08fc2F8ed27FCb2AB183EB2d0E
 ```
 
+## CORS and Browser Access
+
+The nitro-devnode does **not** return CORS headers. Browser-based frontends (React, Next.js) running on `localhost:3000` will have their RPC requests to `localhost:8547` blocked by the browser's same-origin policy.
+
+**Solution:** Proxy RPC calls through a Next.js API route:
+
+```typescript
+// app/api/rpc/route.ts
+import { NextRequest, NextResponse } from "next/server";
+
+const RPC_URL = "http://localhost:8547";
+
+export async function POST(req: NextRequest) {
+  const body = await req.text();
+  const res = await fetch(RPC_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body,
+  });
+  const data = await res.text();
+  return new NextResponse(data, {
+    status: res.status,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+```
+
+Then point the wagmi/viem transport at the proxy:
+
+```typescript
+transports: {
+  [arbitrumLocal.id]: http("/api/rpc"),
+}
+```
+
+This only affects browser reads. CLI tools (`cast`, `forge`) connect directly to `localhost:8547` without issues.
+
 ## RPC Endpoint Reference
 
 | Endpoint | Port | Purpose |
