@@ -46,7 +46,7 @@ my-arbitrum-dapp/
 # 1. Create workspace
 mkdir my-arbitrum-dapp && cd my-arbitrum-dapp
 pnpm init
-echo "packages:\n  - 'apps/*'" > pnpm-workspace.yaml
+printf "packages:\n  - 'apps/*'\n" > pnpm-workspace.yaml
 
 # 2. Local devnode
 git clone https://github.com/OffchainLabs/nitro-devnode.git apps/nitro-devnode
