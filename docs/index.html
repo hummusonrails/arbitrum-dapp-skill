@@ -289,6 +289,32 @@
       background: var(--gray-600);
     }
 
+    /* DEMO VIDEO */
+    .demo {
+      padding: 100px 0 40px;
+    }
+
+    .demo-video {
+      position: relative;
+      width: 100%;
+      max-width: 800px;
+      margin: 0 auto;
+      padding-top: 56.25%; /* 16:9 */
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid rgba(18, 170, 255, 0.1);
+      box-shadow: 0 8px 48px rgba(0, 0, 0, 0.4), 0 0 80px rgba(18, 170, 255, 0.06);
+      background: var(--navy-card);
+    }
+
+    .demo-video iframe {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+
     /* SERVICES */
     .services {
       padding: 100px 0;
@@ -633,6 +659,7 @@
         arbitrum-dapp-skill
       </a>
       <div class="nav-links">
+        <a href="#demo" class="nav-pill">Demo</a>
         <a href="#services" class="nav-pill">Features</a>
         <a href="#quickstart" class="nav-pill">Quick Start</a>
         <a href="#stack" class="nav-pill">Stack</a>
@@ -719,6 +746,26 @@
           <div class="stat-value">v0.10<span class="blue">+</span></div>
           <div class="stat-label">Stylus SDK</div>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DEMO VIDEO -->
+  <section class="demo" id="demo">
+    <div class="container">
+      <div class="section-header" style="text-align:center;">
+        <div class="services-label">See It In Action</div>
+        <h2>From zero to deployed dApp.</h2>
+        <p style="margin:0 auto;">Watch the skill scaffold, build, and deploy an Arbitrum dApp in a single session.</p>
+      </div>
+      <div class="demo-video">
+        <iframe
+          src="https://www.youtube.com/embed/vsejiaOTmJA"
+          title="Arbitrum dApp Skill Demo"
+          frameborder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowfullscreen>
+        </iframe>
       </div>
     </div>
   </section>
