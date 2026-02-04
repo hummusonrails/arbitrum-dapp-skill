@@ -9,6 +9,7 @@
   <a href="https://arbitrum.io"><img src="https://img.shields.io/badge/Arbitrum-Stylus-28A0F0.svg?style=flat-square" alt="Arbitrum Stylus"></a>
   <a href="https://book.getfoundry.sh/"><img src="https://img.shields.io/badge/Built%20with-Foundry-FFDB1C.svg?style=flat-square" alt="Foundry"></a>
   <a href="http://makeapullrequest.com"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square" alt="PRs Welcome"></a>
+  <a href="https://clawhub.ai/hummusonrails/arbitrum-dapp-skill"><img src="https://img.shields.io/badge/ClawHub-arbitrum--dapp--skill-FF6B4A.svg?style=flat-square" alt="ClawHub"></a>
 </p>
 
 <p align="center">
@@ -41,6 +42,19 @@ Then start Claude Code and ask it to build something:
 ```
 
 That's it. The skill loads automatically.
+
+<details>
+<summary><strong>Install from ClawHub</strong></summary>
+
+<br>
+
+```bash
+npx clawhub@latest install arbitrum-dapp-skill
+```
+
+Or browse the skill on [ClawHub](https://clawhub.ai/hummusonrails/arbitrum-dapp-skill).
+
+</details>
 
 <details>
 <summary><strong>Manual installation</strong></summary>
