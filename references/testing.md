@@ -4,23 +4,27 @@
 
 ### Unit tests with stylus-test
 
-Add the test feature to `Cargo.toml`:
+Add the test feature to `Cargo.toml`. The `stylus-test` feature enables `stylus_sdk::testing::*` which provides `TestVM` and `TestVMBuilder`:
 
 ```toml
 [dev-dependencies]
-stylus-sdk = { version = "0.10.0", features = ["stylus-test"] }
+stylus-sdk = { version = "0.10", features = ["stylus-test"] }
 ```
 
-### Basic test
+### Basic test with TestVM
+
+Always create a `TestVM` instance and initialize contracts with `::from(&vm)`:
 
 ```rust
 #[cfg(test)]
 mod tests {
     use super::*;
+    use stylus_sdk::testing::*;
 
     #[test]
     fn test_counter_operations() {
-        let mut contract = Counter::default();
+        let vm = TestVM::default();
+        let mut contract = Counter::from(&vm);
 
         // Initial state
         assert_eq!(contract.number(), U256::from(0));
@@ -36,25 +40,75 @@ mod tests {
 }
 ```
 
-### Testing with transaction context
+### TestVM configuration with builder
 
-The `stylus-test` feature lets you simulate `msg::sender()`, `msg::value()`, and other context values:
+Use `TestVMBuilder` for custom transaction context (sender, value, contract address):
 
 ```rust
 #[cfg(test)]
 mod tests {
     use super::*;
-    use stylus_sdk::msg;
+    use stylus_sdk::testing::*;
+    use alloy_primitives::address;
 
     #[test]
-    fn test_with_sender() {
-        let mut contract = Counter::default();
-        // stylus-test provides simulated context
-        // msg::sender() returns a default test address
+    fn test_with_custom_context() {
+        let vm: TestVM = TestVMBuilder::new()
+            .sender(address!("f39Fd6e51aad88F6F4ce6aB8827279cffFb92266"))
+            .contract_address(address!("5FbDB2315678afecb367f032d93F642f64180aa3"))
+            .value(U256::from(1_000_000))
+            .build();
+
+        let mut contract = Counter::from(&vm);
+
+        // self.vm().msg_sender() will return the configured sender
+        // self.vm().msg_value() will return 1_000_000
         contract.increment();
         assert_eq!(contract.number(), U256::from(1));
     }
 }
+```
+
+### Manipulating block state
+
+```rust
+// Set block timestamp (useful for time-dependent logic)
+vm.set_block_timestamp(1_700_000_000);
+
+// Set block number
+vm.set_block_number(12345678);
+
+// Advance timestamp relatively
+vm.set_block_timestamp(vm.block_timestamp() + 60);
+```
+
+### Mocking external calls
+
+```rust
+let external_contract = address!("8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199");
+let call_data = vec![0xab, 0xcd, 0xef];
+let expected_response = vec![0x12, 0x34, 0x56];
+
+vm.mock_call(external_contract, call_data, Ok(expected_response));
+```
+
+### Verifying emitted events
+
+```rust
+// After calling a method that emits events
+let logs = vm.get_emitted_logs();
+assert_eq!(logs.len(), 1);
+
+// logs[i].0 = topics (Vec<B256>), logs[i].1 = data (Vec<u8>)
+// First topic is always the event signature hash
+```
+
+### VM state snapshots
+
+```rust
+let snapshot = vm.snapshot();
+assert_eq!(snapshot.chain_id, 42161); // Arbitrum One default
+assert_eq!(snapshot.msg_value, U256::from(1));
 ```
 
 ### Running Stylus tests
