@@ -312,9 +312,10 @@ cargo stylus deploy --endpoint http://localhost:8547 \
 cargo stylus deploy --endpoint http://localhost:8547 \
   --private-key 0x... --wasm-file ./target/wasm32-unknown-unknown/release/my_contract.wasm
 
-# Reproducible Docker build (v0.10.6+) for deterministic deploys + verification
+# Reproducible Docker builds are the default — useful for later Arbiscan
+# verification. For fast local iteration without Docker, opt out:
 cargo stylus deploy --endpoint http://localhost:8547 \
-  --private-key 0x... --use-reproducible-build
+  --private-key 0x... --no-verify
 
 # Export Solidity ABI
 cargo stylus export-abi
@@ -331,11 +332,11 @@ cargo stylus new --contract apps/contracts-stylus/voter-registry
 
 ### Keeping a deployed codehash warm
 
-Stylus contracts get evicted from the activation cache if unused. `cargo stylus codehash-keepalive` (v0.10.0+) re-pays the activation fee to keep a contract hot:
+Stylus contracts get evicted from the activation cache if unused. `cargo stylus codehash-keepalive` re-pays the activation fee to keep a contract hot. It takes the contract's codehash (not its address):
 
 ```bash
 cargo stylus codehash-keepalive --endpoint $ARBITRUM_ONE_RPC_URL \
-  --private-key $PRIVATE_KEY --address 0xYOUR_CONTRACT
+  --private-key $PRIVATE_KEY --codehash 0xYOUR_CONTRACT_CODEHASH
 ```
 
 ## Testing
