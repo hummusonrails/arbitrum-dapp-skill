@@ -4,9 +4,11 @@
 
 | Network | Chain ID | RPC | Explorer |
 |---------|----------|-----|----------|
-| Local devnode | 412346 | http://localhost:8547 | — |
+| Local devnode | 412346 | http://localhost:8547 | n/a |
 | Arbitrum Sepolia | 421614 | https://sepolia-rollup.arbitrum.io/rpc | https://sepolia.arbiscan.io |
 | Arbitrum One | 42161 | https://arb1.arbitrum.io/rpc | https://arbiscan.io |
+
+> The public Arbitrum RPC endpoints above are no-SLA defaults and do not support WebSocket subscriptions. For production frontends, use a managed RPC provider (Alchemy, QuickNode, Infura, etc.).
 
 ## Environment Setup
 
@@ -15,6 +17,9 @@
 PRIVATE_KEY=0x...
 ARBITRUM_SEPOLIA_RPC_URL=https://sepolia-rollup.arbitrum.io/rpc
 ARBITRUM_ONE_RPC_URL=https://arb1.arbitrum.io/rpc
+# Single Etherscan V2 key works across all supported chains (Arbitrum One, Sepolia, Nova, etc.).
+# Etherscan API V1 was fully deprecated on Aug 15, 2025; the old per-chain Arbiscan key is gone.
+ETHERSCAN_API_KEY=...
 ```
 
 ## Deploying Stylus Contracts
@@ -68,7 +73,7 @@ forge script script/Deploy.s.sol \
   --broadcast \
   --private-key $PRIVATE_KEY \
   --verify \
-  --etherscan-api-key $ARBISCAN_API_KEY
+  --etherscan-api-key $ETHERSCAN_API_KEY
 
 # Mainnet
 forge script script/Deploy.s.sol \
@@ -76,7 +81,7 @@ forge script script/Deploy.s.sol \
   --broadcast \
   --private-key $PRIVATE_KEY \
   --verify \
-  --etherscan-api-key $ARBISCAN_API_KEY
+  --etherscan-api-key $ETHERSCAN_API_KEY
 ```
 
 ### Direct deployment with forge create
@@ -96,8 +101,10 @@ Verification happens automatically with the `--verify` flag during deployment. F
 ```bash
 forge verify-contract 0xYOUR_CONTRACT src/Counter.sol:Counter \
   --chain arbitrum-sepolia \
-  --etherscan-api-key $ARBISCAN_API_KEY
+  --etherscan-api-key $ETHERSCAN_API_KEY
 ```
+
+The `--etherscan-api-key` flag accepts the unified Etherscan V2 key; Forge selects the right chain via `--chain`.
 
 ### Stylus (Arbiscan)
 

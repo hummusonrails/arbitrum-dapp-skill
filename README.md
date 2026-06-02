@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square" alt="License: MIT"></a>
-  <a href="https://www.rust-lang.org"><img src="https://img.shields.io/badge/Rust-1.81+-orange.svg?style=flat-square&logo=rust" alt="Rust"></a>
+  <a href="https://www.rust-lang.org"><img src="https://img.shields.io/badge/Rust-1.91+-orange.svg?style=flat-square&logo=rust" alt="Rust"></a>
   <a href="https://soliditylang.org/"><img src="https://img.shields.io/badge/Solidity-0.8+-363636.svg?style=flat-square&logo=solidity" alt="Solidity"></a>
   <a href="https://arbitrum.io"><img src="https://img.shields.io/badge/Arbitrum-Stylus-28A0F0.svg?style=flat-square" alt="Arbitrum Stylus"></a>
   <a href="https://book.getfoundry.sh/"><img src="https://img.shields.io/badge/Built%20with-Foundry-FFDB1C.svg?style=flat-square" alt="Foundry"></a>
@@ -92,9 +92,9 @@ git clone https://github.com/hummusonrails/arbitrum-dapp-skill.git ~/.claude/ski
 
 The skill will guide you through installing these, but for reference:
 
-- [Rust](https://rustup.rs/) 1.81+
+- [Rust](https://rustup.rs/) 1.91+
 - [cargo-stylus](https://github.com/OffchainLabs/stylus-sdk-rs): `cargo install --force cargo-stylus`
-- [Foundry](https://book.getfoundry.sh/getting-started/installation): `curl -L https://foundry.paradigm.xyz | bash && foundryup`
+- [Foundry](https://getfoundry.sh/introduction/installation/) v1.0+: `curl -L https://foundry.paradigm.xyz | bash && foundryup`
 - [Docker](https://www.docker.com/products/docker-desktop/) for the local devnode
 - [Node.js](https://nodejs.org/) 20+ and [pnpm](https://pnpm.io/)
 

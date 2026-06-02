@@ -2,8 +2,8 @@
 
 ## Prerequisites
 
-- Foundry: `curl -L https://foundry.paradigm.xyz | bash && foundryup`
-- Solidity 0.8.x (managed by Foundry)
+- Foundry v1.0+: `curl -L https://foundry.paradigm.xyz | bash && foundryup` (Foundry hit v1.0 in Feb 2025; `foundryup` now installs stable by default)
+- Solidity 0.8.x (managed by Foundry). Current stable at the time of writing is 0.8.35; 0.8.30 is a safe default.
 
 ## Project Setup
 
@@ -30,7 +30,7 @@ my-solidity-contracts/
 src = "src"
 out = "out"
 libs = ["lib"]
-solc = "0.8.28"
+solc = "0.8.30"
 optimizer = true
 optimizer_runs = 200
 
@@ -44,7 +44,7 @@ arbitrum_one = "${ARBITRUM_ONE_RPC_URL}"
 
 ```solidity
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.28;
+pragma solidity ^0.8.30;
 
 contract Counter {
     uint256 public number;
@@ -79,7 +79,7 @@ contract Counter {
 ```solidity
 // test/Counter.t.sol
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.28;
+pragma solidity ^0.8.30;
 
 import "forge-std/Test.sol";
 import "../src/Counter.sol";
@@ -117,7 +117,7 @@ forge test --gas-report
 ```solidity
 // script/Deploy.s.sol
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.28;
+pragma solidity ^0.8.30;
 
 import "forge-std/Script.sol";
 import "../src/Counter.sol";
