@@ -6,7 +6,13 @@ All chain interaction uses viem directly or wagmi hooks.
 
 ```bash
 pnpm add viem wagmi @tanstack/react-query
+# wagmi v3 made connector packages optional peer deps — install only what you use:
+pnpm add @metamask/connect-evm   # if you want MetaMask
+# pnpm add @reown/walletconnect-evm     # WalletConnect via Reown
+# pnpm add @coinbase/wallet-sdk         # Coinbase Wallet
 ```
+
+> **Version baseline:** This guide targets `viem ^2`, `wagmi ^3`, `@tanstack/react-query ^5`, Next.js `^16`, and TypeScript `>=5.9.3`. wagmi v3 renamed several hooks and switched mutation hooks to TanStack Query's `.mutate()` API; if you are migrating from wagmi v2, see the [v2 to v3 migration guide](https://wagmi.sh/react/guides/migrate-from-v2-to-v3).
 
 ## Chain Configuration
 
@@ -40,7 +46,7 @@ viem ships with built-in chain definitions for `arbitrum` (One) and `arbitrumSep
 **Important:** Always pass explicit URLs to `http()`. Calling `http()` with no argument does not reliably resolve custom chain RPC URLs from `defineChain` — requests will silently fail.
 
 ```typescript
-import { http, createConfig } from "wagmi";
+import { http, createConfig, createStorage, cookieStorage } from "wagmi";
 import { arbitrum, arbitrumSepolia } from "wagmi/chains";
 import { injected, walletConnect } from "wagmi/connectors";
 import { arbitrumLocal } from "./chains";
@@ -57,6 +63,7 @@ export const config = createConfig({
     [arbitrumLocal.id]: http("/api/rpc"),
   },
   ssr: true,
+  storage: createStorage({ storage: cookieStorage }),
 });
 
 declare module "wagmi" {
@@ -66,7 +73,9 @@ declare module "wagmi" {
 }
 ```
 
-The `declare module "wagmi"` block gives you full type inference for your configured chains across all wagmi hooks. `ssr: true` is needed for Next.js App Router to avoid hydration warnings.
+The `declare module "wagmi"` block gives you full type inference for your configured chains across all wagmi hooks. `ssr: true` plus `cookieStorage` lets wagmi rehydrate the connection state from a cookie on the server, which is the recommended Next.js App Router pattern (see the Hydration section below for why this beats the older `useMounted` workaround).
+
+> **Note:** WalletConnect project IDs are now issued at [dashboard.reown.com](https://dashboard.reown.com) (the old `cloud.walletconnect.com` dashboard now redirects to Reown). The `walletConnect()` connector from `wagmi/connectors` still works; for a fuller modal UX, consider [`@reown/appkit-adapter-wagmi`](https://docs.reown.com/appkit/next/core/installation).
 
 ### CORS proxy for local devnode
 
@@ -93,18 +102,25 @@ export async function POST(request: Request) {
 ## Provider Setup (Next.js App Router)
 
 ```typescript
+// components/providers.tsx
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { WagmiProvider } from "wagmi";
+import { WagmiProvider, type State } from "wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { config } from "@/config/wagmi";
 
-export function Providers({ children }: { children: ReactNode }) {
+export function Providers({
+  children,
+  initialState,
+}: {
+  children: ReactNode;
+  initialState?: State;
+}) {
   const [queryClient] = useState(() => new QueryClient());
 
   return (
-    <WagmiProvider config={config}>
+    <WagmiProvider config={config} initialState={initialState}>
       <QueryClientProvider client={queryClient}>
         {children}
       </QueryClientProvider>
@@ -113,16 +129,29 @@ export function Providers({ children }: { children: ReactNode }) {
 }
 ```
 
-Wrap in layout.tsx:
+Wrap in `layout.tsx`, hydrating wagmi from the request cookie:
 
 ```typescript
+// app/layout.tsx
+import { headers } from "next/headers";
+import { cookieToInitialState } from "wagmi";
+import { config } from "@/config/wagmi";
 import { Providers } from "@/components/providers";
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const initialState = cookieToInitialState(
+    config,
+    (await headers()).get("cookie"),
+  );
+
   return (
     <html lang="en">
       <body>
-        <Providers>{children}</Providers>
+        <Providers initialState={initialState}>{children}</Providers>
       </body>
     </html>
   );
@@ -131,9 +160,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
 ## Hydration Safety
 
-Wagmi hooks like `useAccount()` return different values on the server (no wallet) vs the client (potentially connected). This causes Next.js hydration mismatches when components conditionally render based on wallet state.
+With `ssr: true` + `cookieStorage` + `cookieToInitialState` (above), wagmi's account state is consistent between the server render and the client hydration, so most components no longer need a `useMounted` workaround. Use the cookie-based pattern in new code.
 
-Extract a reusable `useMounted` hook:
+If you do hit a hook whose value is genuinely browser-only (e.g. reading `window.ethereum` directly), the small `useMounted` hook is still a fine escape hatch:
 
 ```typescript
 import { useState, useEffect } from "react";
@@ -145,19 +174,14 @@ export function useMounted() {
 }
 ```
 
-Apply to every component that branches on `useAccount`, `useConnect`, or other wagmi hooks that depend on browser-only wallet state:
-
 ```typescript
 "use client";
 
-import { useAccount } from "wagmi";
-import { useMounted } from "@/hooks/useMounted";
+import { useConnection } from "wagmi"; // wagmi v3: useAccount was renamed to useConnection
 
 export function WalletInfo() {
-  const { address, isConnected } = useAccount();
-  const mounted = useMounted();
+  const { address, isConnected } = useConnection();
 
-  if (!mounted) return <div className="h-10 w-32" />;
   if (!isConnected) return <button>Connect Wallet</button>;
   return <span>{address}</span>;
 }
@@ -228,6 +252,8 @@ const count = await publicClient.readContract({
 
 ## Writing to Contracts
 
+In wagmi v3, mutation hooks like `useWriteContract` follow the TanStack Query mutation API: instead of returning a named function, they expose `.mutate(args)` and `.mutateAsync(args)`. Plan the examples below around that shape.
+
 ### Custom hook pattern
 
 Wrap `useWriteContract` + `useWaitForTransactionReceipt` in a reusable hook per contract action. This keeps components clean and makes tx lifecycle easy to track:
@@ -236,21 +262,30 @@ Wrap `useWriteContract` + `useWaitForTransactionReceipt` in a reusable hook per 
 import { useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 
 export function useIncrement() {
-  const { writeContract, data: hash, isPending, error, reset } = useWriteContract();
+  const writeContract = useWriteContract();
+  const hash = writeContract.data;
 
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
     hash,
   });
 
   function increment(address: `0x${string}`) {
-    writeContract({
+    writeContract.mutate({
       address,
       abi: counterAbi,
       functionName: "increment",
     });
   }
 
-  return { increment, hash, isPending, isConfirming, isSuccess, error, reset };
+  return {
+    increment,
+    hash,
+    isPending: writeContract.isPending,
+    isConfirming,
+    isSuccess,
+    error: writeContract.error,
+    reset: writeContract.reset,
+  };
 }
 ```
 
@@ -260,25 +295,25 @@ For simpler cases, inline the hooks directly:
 
 ```typescript
 function IncrementButton({ address }: { address: `0x${string}` }) {
-  const { writeContract, data: hash, isPending } = useWriteContract();
+  const writeContract = useWriteContract();
 
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
-    hash,
+    hash: writeContract.data,
   });
 
   return (
     <div>
       <button
-        disabled={isPending || isConfirming}
+        disabled={writeContract.isPending || isConfirming}
         onClick={() =>
-          writeContract({
+          writeContract.mutate({
             address,
             abi: counterAbi,
             functionName: "increment",
           })
         }
       >
-        {isPending ? "Confirming..." : "Increment"}
+        {writeContract.isPending ? "Confirming..." : "Increment"}
       </button>
       {isSuccess && <p>Transaction confirmed.</p>}
     </div>
@@ -397,13 +432,16 @@ function parseContractError(error: Error): string {
 
 ### With viem error types
 
-For structured error handling, use viem's error walking:
+For structured error handling, use viem's error walking. With wagmi v3, use `mutateAsync` so you can `await` and catch in one place:
 
 ```typescript
 import { BaseError, ContractFunctionRevertedError } from "viem";
+import { useWriteContract } from "wagmi";
+
+const writeContract = useWriteContract();
 
 try {
-  await writeContract({ ... });
+  await writeContract.mutateAsync({ /* ... */ });
 } catch (err) {
   if (err instanceof BaseError) {
     const revertError = err.walk(

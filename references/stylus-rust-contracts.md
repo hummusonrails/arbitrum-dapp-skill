@@ -2,9 +2,9 @@
 
 ## Prerequisites
 
-- Rust 1.88+ (pin in `rust-toolchain.toml`)
+- Rust 1.91+ (pin in `rust-toolchain.toml`). The Stylus SDK's MSRV was bumped to 1.91.0 in v0.10.3.
 - `wasm32-unknown-unknown` target: `rustup target add wasm32-unknown-unknown`
-- `cargo-stylus` CLI: `cargo install --force cargo-stylus`
+- `cargo-stylus` CLI: `cargo install --force cargo-stylus`. As of v0.10.0, `cargo-stylus` ships from the [`OffchainLabs/stylus-sdk-rs`](https://github.com/OffchainLabs/stylus-sdk-rs) monorepo; the standalone `OffchainLabs/cargo-stylus` repo was archived in late 2025.
 - Docker (required for `cargo stylus check` and `deploy`)
 
 ## Project Setup
@@ -20,16 +20,20 @@ This generates a counter contract template with `Cargo.toml` pre-configured for 
 
 ```toml
 [dependencies]
-stylus-sdk = "0.10"
-alloy-primitives = "1.3"
-alloy-sol-types = "1.3"
+stylus-sdk = "0.10.7"
+alloy-primitives = "1.5"
+alloy-sol-types = "1.5"
 
 [dev-dependencies]
-stylus-sdk = { version = "0.10", features = ["stylus-test"] }
+stylus-sdk = { version = "0.10.7", features = ["stylus-test"] }
 
 [features]
 export-abi = ["stylus-sdk/export-abi"]
 ```
+
+> **Version notes:**
+> - stylus-sdk 0.10.3+ requires `alloy-primitives` and `alloy-sol-types` 1.5.x. Pinning `1.3` will still resolve but may pick up incompatible transitive versions; prefer `1.5`.
+> - The `reentrant` feature flag and the `deny_reentrant` entrypoint guard were deprecated in v0.10.5. Reentrancy safety now comes from automatic storage-cache flushing in the high-level call helpers, so do not enable `reentrant`.
 
 ## Workspace Configuration (v0.10)
 
@@ -145,6 +149,8 @@ self.vm().log(Transfer {
 ## Cross-Contract Calls (v0.10 Trait Pattern)
 
 ### Define the Interface on the Callee
+
+Traits used for routing or inheritance must be annotated with `#[public]` (v0.10.0 made this a hard requirement; trait methods are no longer routable without it):
 
 ```rust
 // In voter-registry crate
@@ -302,8 +308,34 @@ cargo stylus deploy --endpoint http://localhost:8547 \
 cargo stylus deploy --endpoint http://localhost:8547 \
   --private-key 0x...
 
+# Deploy a pre-built WASM (skips the build step; useful in CI)
+cargo stylus deploy --endpoint http://localhost:8547 \
+  --private-key 0x... --wasm-file ./target/wasm32-unknown-unknown/release/my_contract.wasm
+
+# Reproducible Docker build (v0.10.6+) for deterministic deploys + verification
+cargo stylus deploy --endpoint http://localhost:8547 \
+  --private-key 0x... --use-reproducible-build
+
 # Export Solidity ABI
 cargo stylus export-abi
+```
+
+### Workspace scaffolding (v0.10)
+
+`cargo stylus new` accepts `--workspace` and `--contract` flags to scaffold a multi-contract workspace or a contract inside an existing workspace:
+
+```bash
+cargo stylus new --workspace my-dapp
+cargo stylus new --contract apps/contracts-stylus/voter-registry
+```
+
+### Keeping a deployed codehash warm
+
+Stylus contracts get evicted from the activation cache if unused. `cargo stylus codehash-keepalive` (v0.10.0+) re-pays the activation fee to keep a contract hot:
+
+```bash
+cargo stylus codehash-keepalive --endpoint $ARBITRUM_ONE_RPC_URL \
+  --private-key $PRIVATE_KEY --address 0xYOUR_CONTRACT
 ```
 
 ## Testing
